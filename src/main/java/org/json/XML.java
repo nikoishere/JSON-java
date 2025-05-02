@@ -8,7 +8,9 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * This provides static methods to convert an XML text into a JSONObject, and to
@@ -1036,5 +1038,162 @@ public class XML {
             sb.append(' ');
         }
         return sb.toString();
+    }
+    /**
+     * Milestone 2
+     * Parses an XML stream and extracts the sub-object located at the specified JSONPointer path.
+     * The parsing stops once the sub-object is fully found, for performance.
+     *
+     * @param reader A Reader containing XML content.
+     * @param path A JSONPointer specifying the path to the target object.
+     * @return A JSONObject representing the extracted sub-object from the XML.
+     */
+    public static JSONObject toJSONObject(Reader reader, JSONPointer path) {
+        // Split the path into individual element names
+        String[] pathElements = path.toString().substring(1).split("/");
+        int depth = 0;
+        boolean closingTagReached = false;
+        List<String> xmlFragments = new ArrayList<>();
+
+        XMLTokener tokener = new XMLTokener(reader);
+
+        // Traverse the XML tokens
+        while (tokener.more()) {
+            tokener.skipPast("<");
+            if (!tokener.more()) break;
+
+            Object token = tokener.nextContent();
+            if (token instanceof String) {
+                String tag = (String) token;
+
+                // Ignore metadata and comments
+                if (tag.charAt(0) != '?' && tag.charAt(0) != '!') {
+                    // If still navigating to target depth
+                    if (depth < pathElements.length) {
+                        // Match opening tag
+                        if (tag.startsWith(pathElements[depth])) {
+                            closingTagReached = false;
+                            if (depth == pathElements.length - 1) {
+                                xmlFragments.add("<" + tag);
+                            }
+                            if (depth == 0) depth++;
+                        }
+                        // Match closing tag
+                        else if (tag.startsWith("/") && tag.substring(1).startsWith(pathElements[depth])) {
+                            closingTagReached = true;
+                            if (depth == pathElements.length - 1) {
+                                xmlFragments.add("<" + tag);
+                            }
+                        }
+                        // Intermediate nodes
+                        else {
+                            if (closingTagReached) depth++;
+                            if (depth == pathElements.length - 1) {
+                                xmlFragments.add("<" + tag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build partial XML from collected fragments
+        StringBuilder xmlBuilder = new StringBuilder();
+        for (String fragment : xmlFragments) {
+            xmlBuilder.append(fragment);
+        }
+
+        // Convert the collected XML fragment into JSON
+        JSONObject extracted = toJSONObject(xmlBuilder.toString());
+        System.out.println("===== Extracted JSON =====");
+        System.out.println(extracted.toString(4));
+        return extracted;
+    }
+
+
+    /**
+     * Parses an XML stream and replaces the sub-object at a given JSONPointer path
+     * with a provided replacement JSONObject before conversion.
+     *
+     * @param reader A Reader containing XML content.
+     * @param path A JSONPointer specifying the path to the target object to be replaced.
+     * @param replacement A JSONObject to insert in place of the original sub-object.
+     * @return A JSONObject with the replacement applied.
+     * @throws JSONException if an error occurs during XML parsing or JSON conversion.
+     */
+    public static JSONObject toJSONObject(Reader reader, JSONPointer path, JSONObject replacement) {
+        String[] pathElements = path.toString().substring(1).split("/");
+        int depth = 0;
+        boolean closingTagReached = false;
+        boolean lastElementMatched = false;
+        List<String> xmlFragments = new ArrayList<>();
+
+        XMLTokener tokener = new XMLTokener(reader);
+
+        // Traverse the XML tokens
+        while (tokener.more()) {
+            tokener.skipPast("<");
+            if (!tokener.more()) break;
+
+            Object token = tokener.nextContent();
+            if (token instanceof String) {
+                String tag = (String) token;
+
+                // Ignore metadata and comments
+                if (tag.charAt(0) != '?') {
+                    if (depth < pathElements.length) {
+                        // Match opening tag
+                        if (tag.startsWith(pathElements[depth])) {
+                            closingTagReached = false;
+                            if (depth < pathElements.length - 1 || !lastElementMatched) {
+                                xmlFragments.add("<" + tag);
+                                if (depth == pathElements.length - 1) lastElementMatched = true;
+                            }
+                            if (depth == 0) depth++;
+                        }
+                        // Match closing tag
+                        else if (tag.startsWith("/") && tag.substring(1).startsWith(pathElements[depth])) {
+                            closingTagReached = true;
+                            if (depth < pathElements.length - 1) {
+                                xmlFragments.add("<" + tag);
+                            }
+                        }
+                        // Intermediate tags
+                        else {
+                            if (closingTagReached) depth++;
+                            if (depth < pathElements.length - 1) {
+                                xmlFragments.add("<" + tag);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build partial XML structure
+        StringBuilder finalXml = new StringBuilder();
+        for (String fragment : xmlFragments) {
+            finalXml.append(fragment);
+        }
+
+        // Append replacement object as XML
+        finalXml.append(XML.toString(replacement));
+
+        // Append necessary closing tags in reverse order
+        for (int i = xmlFragments.size() - 1; i >= 0; i--) {
+            String original = xmlFragments.get(i);
+            int spaceIndex = original.indexOf(" ");
+            if (spaceIndex == -1) {
+                finalXml.append("</").append(original.substring(1));
+            } else {
+                finalXml.append("</").append(original.substring(1, spaceIndex)).append(">");
+            }
+        }
+
+        // Convert the modified XML into JSON
+        JSONObject result = toJSONObject(finalXml.toString());
+        System.out.println("===== Replaced JSON =====");
+        System.out.println(result.toString(4));
+        return result;
     }
 }
