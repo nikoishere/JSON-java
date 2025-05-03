@@ -66,7 +66,7 @@ This method is designed to efficiently extract a specific sub-object from an XML
 
 The input JSONPointer is first split into its individual tag components to represent the hierarchical path. The method then uses a XMLTokener to traverse the XML content token by token. As it encounters each tag, it checks whether it matches the expected structure of the path. When the target depth is reached, matching tags and their contents are collected into a list of XML fragments. The parser stops immediately once the entire sub-object has been captured. Finally, the collected XML fragment is reassembled and converted into a JSONObject using the existing XML.toJSONObject(String) method.
 
-------
+
 
 ### **Method 2: Replacing a Sub-object by Path**
 
@@ -86,6 +86,20 @@ This method allows replacing a specific sub-object in an XML document with a use
 
 Similar to the extraction method, this function parses the XML stream token by token and collects the opening tags that lead to the target path. Once the target sub-object is found, it is replaced by converting the provided JSONObject into its XML form. The new XML fragment is then inserted in place of the original one. Afterward, any necessary closing tags are appended in reverse order to properly close the surrounding XML structure. The resulting XML string is finally converted back into a JSONObject using the existing XML.toJSONObject(String) method.
 
+
+
+### **In-Place Operations**
+
+In this milestone, both new methods are designed to handle XML more efficiently by working in-place during parsing.
+
+
+
+For the extraction method, instead of converting the entire XML into a JSONObject and then navigating with a JSONPointer like we did in Milestone 1, we now scan the XML stream as it’s being read and stop as soon as we find the target sub-object. This avoids a lot of unnecessary work and makes the process faster, especially for large XML files.
+
+
+
+The replacement method follows a similar idea. While parsing the XML, we skip over the original sub-object at the given path and directly insert the new content (converted from a JSONObject). This way, we don’t need to build and modify a full JSONObject after parsing. We handle it while reading the XML, which is more efficient.
+
 ------
 
 
@@ -93,8 +107,6 @@ Similar to the extraction method, this function parses the XML stream token by t
 ## Test Cases (starting from line 1431 in XMLTest.java)
 
 The test cases for Milestone 2 begin at **line 1431** in `src/test/java/org/json/junit/XMLTest.java.`.
-
-------
 
 
 
@@ -104,8 +116,6 @@ The test cases for Milestone 2 begin at **line 1431** in `src/test/java/org/json
 
 This test checks `XML.toJSONObject(Reader reader, JSONPointer path)` and verifies the correct extraction of a <book> element from a sample XML string. The JSONPointer navigates to /catalog/book, and the method is expected to return a JSONObject that accurately reflects the structure and content of the <book> element.
 
-------
-
 
 
 ### **Test 2: testReplaceJSONObject**
@@ -113,8 +123,6 @@ This test checks `XML.toJSONObject(Reader reader, JSONPointer path)` and verifie
 **Purpose**
 
 This test checks `XML.toJSONObject(Reader reader, JSONPointer path, JSONObject replacement)` and whether the replacement logic correctly replaces the entire <book> element with a placeholder JSONObject containing "NA" values for all fields.
-
-------
 
 
 
