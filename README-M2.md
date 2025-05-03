@@ -8,6 +8,38 @@ Yifei Wang ([yifew59@uci.edu](mailto:yifew59@uci.edu))
 
 Cherine Cho ([cherinec@uci.edu](mailto:cherinec@uci.edu))
 
+------
+
+
+
+## **How to Run**
+
+Since the official [stleary/JSON-java](https://github.com/stleary/JSON-java) repository is frequently updated, for this milestone, the reference version is the release tagged [20250107](https://github.com/stleary/JSON-java/releases/tag/20250107).
+
+
+
+We strongly recommend using **Java 8 or higher** and **Maven 3.9+** to build and run the project. Make sure the following commands run successfully from the root of your project:
+
+```
+mvn clean
+mvn compile
+mvn test
+```
+
+With this environment and the specified checkpoint, the project should compile and pass all baseline tests successfully:
+
+```
+Tests run: 676, Failures: 0, Errors: 0, Skipped: 2
+```
+
+If you only want to run a specific test or Milestone 2, run this command:
+
+```
+mvn test -Dtest="org.json.junit.XMLTest"
+```
+
+------
+
 
 
 ## Implementation (starting from line 1042 in XML.java)
@@ -62,6 +94,8 @@ Similar to the extraction method, this function parses the XML stream token by t
 
 The test cases for Milestone 2 begin at **line 1431** in `src/test/java/org/json/junit/XMLTest.java.`.
 
+------
+
 
 
 ### **Test 1: testExtractJSONObject**
@@ -70,11 +104,19 @@ The test cases for Milestone 2 begin at **line 1431** in `src/test/java/org/json
 
 This test checks `XML.toJSONObject(Reader reader, JSONPointer path)` and verifies the correct extraction of a <book> element from a sample XML string. The JSONPointer navigates to /catalog/book, and the method is expected to return a JSONObject that accurately reflects the structure and content of the <book> element.
 
+------
+
+
+
 ### **Test 2: testReplaceJSONObject**
 
 **Purpose**
 
 This test checks `XML.toJSONObject(Reader reader, JSONPointer path, JSONObject replacement)` and whether the replacement logic correctly replaces the entire <book> element with a placeholder JSONObject containing "NA" values for all fields.
+
+------
+
+
 
 ### **Test 3: testReplaceJSONObjectWithInvalidPath**
 
