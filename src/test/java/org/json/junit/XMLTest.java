@@ -4,12 +4,6 @@ package org.json.junit;
 Public Domain.
 */
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -32,6 +26,8 @@ import org.json.JSONObject;
 import org.json.XML;
 
 import java.io.FileNotFoundException;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -1437,103 +1433,93 @@ public class XMLTest {
      * test on "JSONObject toJSONObject(Reader reader, JSONPointer path)"
      * expect return a valid JSONObject
      */
+
+    // Shared sample XML string used across all tests.
+    private static final String XML_STRING =
+            "<catalog><book>" +
+                    "<author>Gambardella, Matthew</author>" +
+                    "<price>44.95</price>" +
+                    "<genre>Computer</genre>" +
+                    "<description>An in-depth look at creating applications with XML.</description>" +
+                    "<id>bk101</id>" +
+                    "<title>XML Developer's Guide</title>" +
+                    "<publish_date>2000-10-01</publish_date>" +
+                    "</book></catalog>";
+    /**
+     * ===== Test 1 =====
+     * Verifies correct extraction of a sub-object from /catalog/book.
+     * Expected behavior: the <book> element is parsed into a valid JSONObject.
+     */
     @Test
-public void testExtractJSONObject() {
-    String xmlString = "<catalog><book>" +
-        "<author>Gambardella, Matthew</author>" +
-        "<price>44.95</price>" +
-        "<genre>Computer</genre>" +
-        "<description>An in-depth look at creating applications with XML.</description>" +
-        "<id>bk101</id>" +
-        "<title>XML Developer's Guide</title>" +
-        "<publish_date>2000-10-01</publish_date>" +
-        "</book></catalog>";
+    public void testExtractJSONObject() {
+        JSONPointer path = new JSONPointer("/catalog/book");
 
-    JSONPointer path = new JSONPointer("/catalog/book");
+        JSONObject actual = XML.toJSONObject(new StringReader(XML_STRING), path);
 
-    JSONObject actual = XML.toJSONObject(new StringReader(xmlString), path);
+        String expected = "{ \"book\": { " +
+                "\"author\":\"Gambardella, Matthew\"," +
+                "\"price\":44.95," +
+                "\"genre\":\"Computer\"," +
+                "\"description\":\"An in-depth look at creating applications with XML.\"," +
+                "\"id\":\"bk101\"," +
+                "\"title\":\"XML Developer's Guide\"," +
+                "\"publish_date\":\"2000-10-01\" } }";
 
-    String expected = "{ \"book\": { " +
-        "\"author\":\"Gambardella, Matthew\"," +
-        "\"price\":44.95," +
-        "\"genre\":\"Computer\"," +
-        "\"description\":\"An in-depth look at creating applications with XML.\"," +
-        "\"id\":\"bk101\"," +
-        "\"title\":\"XML Developer's Guide\"," +
-        "\"publish_date\":\"2000-10-01\" } }";
-
-    Util.compareActualVsExpectedJsonObjects(actual, new JSONObject(expected));
-}
+        Util.compareActualVsExpectedJsonObjects(actual, new JSONObject(expected));
+    }
 
 
 
     /**
-     * test on "JSONObject toJSONObject(Reader reader, JSONPointer path, JSONObject replacement)"
-     * expect return a new JSONObject
+     * ===== Test 2 =====
+     * Tests replacing the /catalog/book node with a custom JSONObject.
+     * Expected behavior: the entire <book> element is replaced with placeholder values.
      */
     @Test
-public void testReplaceJSONObject() {
-    String xmlString = "<catalog><book>" +
-        "<author>Gambardella, Matthew</author>" +
-        "<price>44.95</price>" +
-        "<genre>Computer</genre>" +
-        "<description>An in-depth look at creating applications with XML.</description>" +
-        "<id>bk101</id>" +
-        "<title>XML Developer's Guide</title>" +
-        "<publish_date>2000-10-01</publish_date>" +
-        "</book></catalog>";
+    public void testReplaceJSONObject() {
+        JSONPointer pointer = new JSONPointer("/catalog/book");
 
-    JSONPointer pointer = new JSONPointer("/catalog/book");
+        JSONObject replacement = new JSONObject()
+                .put("author", "NA")
+                .put("price", "NA")
+                .put("genre", "NA")
+                .put("description", "NA")
+                .put("id", "NA")
+                .put("title", "NA")
+                .put("publish_date", "NA");
 
-    JSONObject replacement = new JSONObject()
-        .put("author", "NA")
-        .put("price", "NA")
-        .put("genre", "NA")
-        .put("description", "NA")
-        .put("id", "NA")
-        .put("title", "NA")
-        .put("publish_date", "NA");
+        JSONObject actualResult = XML.toJSONObject(new StringReader(XML_STRING), pointer, replacement);
 
-    JSONObject actualResult = XML.toJSONObject(new StringReader(xmlString), pointer, replacement);
-
-    String expected = "{\"catalog\":{\"book\":{\"author\":\"NA\",\"price\":\"NA\",\"genre\":\"NA\",\"description\":\"NA\",\"id\":\"NA\",\"title\":\"NA\",\"publish_date\":\"NA\"}}}";
-    assertEquals(new JSONObject(expected).toString(), actualResult.toString());
-}
+        String expected = "{\"catalog\":{\"book\":{\"author\":\"NA\",\"price\":\"NA\",\"genre\":\"NA\",\"description\":\"NA\",\"id\":\"NA\",\"title\":\"NA\",\"publish_date\":\"NA\"}}}";
+        assertEquals(new JSONObject(expected).toString(), actualResult.toString());
+    }
 
 
     /**
-     * test on "JSONObject toJSONObject(Reader reader, JSONPointer path, JSONObject replacement)"
-     * expect actual and expect JSONObject is different
+     * ===== Test 3 =====
+     * Attempts to replace a non-existent node at /catalog/invalid.
+     * Expected behavior: since the path doesn't exist, the original XML should remain unchanged.
      */
     @Test
-public void testReplaceJSONObjectWithInvalidPath() {
-    String xmlString = "<catalog><book>" +
-        "<author>Gambardella, Matthew</author>" +
-        "<price>44.95</price>" +
-        "<genre>Computer</genre>" +
-        "<description>An in-depth look at creating applications with XML.</description>" +
-        "<id>bk101</id>" +
-        "<title>XML Developer's Guide</title>" +
-        "<publish_date>2000-10-01</publish_date>" +
-        "</book></catalog>";
+    public void testReplaceJSONObjectWithInvalidPath() {
+        JSONPointer pointer = new JSONPointer("/catalog/invalid");
 
-    JSONPointer pointer = new JSONPointer("/catalog/invalid");
+        JSONObject replacement = new JSONObject()
+                .put("author", "NA")
+                .put("price", "NA")
+                .put("genre", "NA")
+                .put("description", "NA")
+                .put("id", "NA")
+                .put("title", "NA")
+                .put("publish_date", "NA");
 
-    JSONObject replacement = new JSONObject()
-        .put("author", "NA")
-        .put("price", "NA")
-        .put("genre", "NA")
-        .put("description", "NA")
-        .put("id", "NA")
-        .put("title", "NA")
-        .put("publish_date", "NA");
+        JSONObject actualResult = XML.toJSONObject(new StringReader(XML_STRING), pointer, replacement);
 
-    JSONObject actualResult = XML.toJSONObject(new StringReader(xmlString), pointer, replacement);
-
-    // This is the expected original XML to be unchanged.
-    String unexpected = "{\"catalog\":{\"book\":{\"author\":\"NA\",\"price\":\"NA\",\"genre\":\"NA\",\"description\":\"NA\",\"id\":\"NA\",\"title\":\"NA\",\"publish_date\":\"NA\"}}}";
-
-    assertNotEquals(new JSONObject(unexpected).toString(), actualResult.toString());
-}
+        String unexpected = "{\"catalog\":{\"book\":{\"author\":\"NA\",\"price\":\"NA\",\"genre\":\"NA\",\"description\":\"NA\",\"id\":\"NA\",\"title\":\"NA\",\"publish_date\":\"NA\"}}}";
+        assertNotEquals(new JSONObject(unexpected).toString(), actualResult.toString());
+    }
 
 }
+
+
+
